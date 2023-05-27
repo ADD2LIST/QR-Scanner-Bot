@@ -1,50 +1,62 @@
 # -*- coding: utf-8 -*-
 
-# Telegram
-from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import Updater, filters, MessageHandler, CallbackContext
+from telegram.ext import Updater, MessageHandler, Filters
 
-# QR Code
 from pyzbar.pyzbar import decode
 
-# System libraries
-import os
-from os import listdir
-from os.path import isfile, join
-
-from io import BytesIO
 from PIL import Image
 
 TOKEN = "6003057608:AAGHWgY8TQkQzjdQnJP3MWbEfn8uMWU8WpM"
 
-def decode_qr(update: Update, context: CallbackContext):
-	chat_id = update.message.chat_id
+def decode_qr(update, context):
 
-	if update.message.photo:
-		id_img = update.message.photo[-1].file_id
-	else:
-		return
+    chat_id = update.message.chat_id
 
-	foto = context.bot.getFile(id_img)
+    if update.message.photo:
 
-	new_file = context.bot.get_file(foto.file_id)
-	new_file.download('qrcode.png')
+        photo = update.message.photo[-1]
 
-	try:
-		result = decode(Image.open('qrcode.png'))
-		context.bot.sendMessage(chat_id=chat_id, text=result[0].data.decode("utf-8"))
-		os.remove("qrcode.png")
-	except Exception as e:
-		context.bot.sendMessage(chat_id=chat_id, text=str(e))
+        file_id = photo.file_id
+
+        new_file = context.bot.get_file(file_id)
+
+        image = Image.open(new_file.download_as_bytearray())
+
+        try:
+
+            qr_codes = decode(image)
+
+            if qr_codes:
+
+                result = qr_codes[0].data.decode("utf-8")
+
+                context.bot.send_message(chat_id=chat_id, text=result)
+
+            else:
+
+                context.bot.send_message(chat_id=chat_id, text="No QR code found in the image.")
+
+        except Exception as e:
+
+            context.bot.send_message(chat_id=chat_id, text=str(e))
+
+    else:
+
+        context.bot.send_message(chat_id=chat_id, text="Please send a photo with a QR code.")
 
 def main():
-	updater = Updater(TOKEN, request_kwargs={'read_timeout': 20, 'connect_timeout': 20}, use_context=True)
-	dp = updater.dispatcher
 
-	dp.add_handler(MessageHandler(Filters.photo, decode_qr))
+    updater = Updater(TOKEN, use_context=True)
 
-	updater.start_polling()
-	updater.idle()
+    dp = updater.dispatcher
+
+    dp.add_handler(MessageHandler(Filters.photo, decode_qr))
+
+    updater.start_polling()
+
+    updater.idle()
 
 if __name__ == '__main__':
-	main()
+
+    main()
+
