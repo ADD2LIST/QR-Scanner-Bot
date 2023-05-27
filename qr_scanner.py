@@ -2,7 +2,7 @@
 
 # Telegram
 from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
-from telegram.ext import Updater, Filters, MessageHandler, CallbackContext
+from telegram.ext import Updater, filters, MessageHandler, CallbackContext
 
 # QR Code
 from pyzbar.pyzbar import decode
